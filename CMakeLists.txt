@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.2)
 set(VERSION_MAJOR 2)
 set(VERSION_MINOR 7)
 set(VERSION_RELEASE 0)
-set(VERSION_EXT "_20")
+set(VERSION_EXT "_18")
 project(ToastStunt VERSION ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_RELEASE} LANGUAGES CXX C)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/CMakeModules/")
@@ -11,10 +11,20 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/CMakeModules/")
 find_package(BISON REQUIRED)
 find_package(Perl REQUIRED)
 find_package(gperf REQUIRED)
+find_package(Boost REQUIRED)
 
 # Where to find header files
 include_directories(${CMAKE_SOURCE_DIR}/src/include)
 include_directories(${CMAKE_SOURCE_DIR}/src/dependencies)
+include_directories(${CMAKE_SOURCE_DIR}/src/dependencies/stats)
+include_directories(${CMAKE_SOURCE_DIR}/src/dependencies/stats/stats_incl)
+include_directories(${CMAKE_SOURCE_DIR}/src/dependencies/stats/stats_incl/dens)
+include_directories(${CMAKE_SOURCE_DIR}/src/dependencies/stats/stats_incl/misc)
+include_directories(${CMAKE_SOURCE_DIR}/src/dependencies/stats/stats_incl/prob)
+include_directories(${CMAKE_SOURCE_DIR}/src/dependencies/stats/stats_incl/quant)
+include_directories(${CMAKE_SOURCE_DIR}/src/dependencies/stats/stats_incl/rand)
+include_directories(${CMAKE_SOURCE_DIR}/src/dependencies/gcem)
+include_directories(${CMAKE_SOURCE_DIR}/src/dependencies/gcem_incl)
 include_directories(${CMAKE_BINARY_DIR})
 
 # Build types
@@ -32,31 +42,27 @@ endif()
 # Compile Options
 option(ONLY_32_BITS "Use 32-bit integers instead of 64-bit." OFF)
 
-# Fall back to 32-bit mode if the target doesn't support 64-bit
-if( CMAKE_SIZEOF_VOID_P EQUAL 4 )
-    set(ONLY_32_BITS true)
-endif()
-
 # Compiler Flags
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_C_STANDARD 99)
 
 # These flags are shared by the RELEASE and WARN build types.
 set(SHARED_COMPILE_FLAGS "-march=native -O3")
 
 # The default for non-developers: Optimization enabled and all warnings silenced.
-set(CMAKE_C_FLAGS_RELEASE   "${CMAKE_C_FLAGS_RELEASE} ${SHARED_COMPILE_FLAGS} -w")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${SHARED_COMPILE_FLAGS} -w")
+set(CMAKE_C_FLAGS_RELEASE   "-O3 ${CMAKE_C_FLAGS_RELEASE} ${SHARED_COMPILE_FLAGS} -w -march=native -fgcse-las -fdevirtualize-at-ltrans -fsched-pressure -fsched-spec-load -fipa-pta -fivopts")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 ${CMAKE_CXX_FLAGS_RELEASE} ${SHARED_COMPILE_FLAGS} -w -march=native -fgcse-las -fdevirtualize-at-ltrans -fsched-pressure -fsched-spec-load -fipa-pta -fivopts")
 
 # The normal LambdaMOO way: Optimizations and warnings enabled
 set(CMAKE_C_FLAGS_WARN   "${SHARED_COMPILE_FLAGS} -Wall -Wno-unused-parameter -Wno-sign-compare -Wno-switch")
 set(CMAKE_CXX_FLAGS_WARN "${CMAKE_C_FLAGS_WARN}")
 
 # Check for memory leaks: Minimal optimizations, debug enabled, and sanitize address
-set(CMAKE_C_FLAGS_LEAKCHECK  "-O1 -g -fsanitize=address -fno-omit-frame-pointer -fno-optimize-sibling-calls")
+# fsanitize options: address, undefined
+set(CMAKE_C_FLAGS_LEAKCHECK  "-O0 -g -fsanitize=undefined -fno-omit-frame-pointer -fno-optimize-sibling-calls")
 set(CMAKE_CXX_FLAGS_LEAKCHECK "${CMAKE_C_FLAGS_LEAKCHECK}")
 if(CMAKE_BUILD_TYPE MATCHES "LeakCheck")
-    set(EXTRA_LINKER_FLAGS "-fsanitize=address")
+    set(EXTRA_LINKER_FLAGS "-fsanitize=undefined")
 endif()
 
 string(TOUPPER ${CMAKE_BUILD_TYPE} CMAKE_BUILD_TYPE_UPPER)
@@ -206,6 +212,10 @@ set(src_CXXSRCS
     src/simplexnoise.cc
     src/argon2.cc
     src/spellcheck.cc
+	src/extension-sorressean.cc
+    src/custom.cc
+    src/extension-goblin.cc
+		src/extension-vcl.cpp
     src/curl.cc)
 
 set(src_GRAMMAR
